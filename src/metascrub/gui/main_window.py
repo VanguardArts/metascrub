@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from PySide6.QtCore import QByteArray, QSettings, Qt
+from PySide6.QtCore import QByteArray, QSettings, Qt, QTimer
 from PySide6.QtGui import QIcon, QPainter, QPixmap
 from PySide6.QtSvg import QSvgRenderer
 from PySide6.QtWidgets import (
@@ -28,6 +28,7 @@ from .pages import CleanPage, ScanPage, VerifyPage
 from .places import mounted_places
 from .theme import (current_theme, icon_svg, theme_label, theme_names,
                     apply_theme)
+from .wizard import TutorialDialog
 
 
 def app_icon(size: int = 128) -> QIcon:
@@ -134,6 +135,9 @@ class MainWindow(QMainWindow):
         self.nav_buttons[0].setChecked(True)
 
         side.addStretch(1)
+        self.tutorial_btn = QPushButton("💡 Tutorial")
+        self.tutorial_btn.clicked.connect(self.show_tutorial)
+        side.addWidget(self.tutorial_btn)
         theme_lbl = QLabel("Theme")
         theme_lbl.setObjectName("version")
         side.addWidget(theme_lbl)
@@ -153,6 +157,9 @@ class MainWindow(QMainWindow):
 
         self.statusBar().showMessage("Ready")
 
+        if not self._settings.value("tutorial_seen", False, type=bool):
+            QTimer.singleShot(400, self.show_tutorial)
+
         for page in self.pages:
             if isinstance(page, ScanPage):
                 page.scan_btn.clicked.connect(
@@ -163,6 +170,11 @@ class MainWindow(QMainWindow):
 
     def root_path(self) -> str:
         return self.path_edit.text()
+
+    def show_tutorial(self):
+        dlg = TutorialDialog(self)
+        dlg.exec()
+        self._settings.setValue("tutorial_seen", True)
 
     def _on_theme_changed(self, index: int):
         key = self.theme_combo.itemData(index)

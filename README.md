@@ -191,6 +191,7 @@ CLI flags override policy values. See [examples/policy.example.yaml](examples/po
 ## Roadmap
 
 - [x] Desktop GUI (PySide6, 8 dark themes incl. slate/anthracite)
+- [x] First-launch tutorial wizard (reopenable from the sidebar)
 - [ ] FLAC / Ogg / M4A adapters (Vorbis comments, MP4 atoms)
 - [ ] Cover-art replace (not just strip)
 - [ ] MusicBrainz lookup for real credits

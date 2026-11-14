@@ -163,3 +163,46 @@ def test_theme_picker_switches_and_persists(qapp):
     assert theme.current_theme() == theme.DEFAULT_THEME
     w._settings.remove("theme")
     w.close()
+def test_tutorial_dialog_flow(qapp):
+    from metascrub.gui.wizard import PAGES, TutorialDialog
+    dlg = TutorialDialog()
+    assert dlg._page == 0
+    assert not dlg.back_btn.isEnabled()
+    assert dlg.next_btn.text() == "Next"
+    for i in range(1, len(PAGES)):
+        dlg.next()
+        assert dlg._page == i
+    assert dlg.next_btn.text() == "Finish"
+    dlg.back()
+    assert dlg._page == len(PAGES) - 2
+    dlg.close()
+
+
+def test_tutorial_first_launch_and_reopen(qapp, monkeypatch):
+    from PySide6.QtCore import QSettings
+    from PySide6.QtTest import QTest
+
+    from metascrub.gui import main_window as mw_mod
+    from metascrub.gui.main_window import MainWindow
+
+    settings = QSettings("metascrub", "metascrub")
+    settings.remove("tutorial_seen")
+
+    opened = []
+    monkeypatch.setattr(mw_mod.TutorialDialog, "exec",
+                        lambda self: opened.append(1) or 0)
+
+    w = MainWindow()
+    QTest.qWait(600)  # let the first-launch timer fire
+    assert opened, "tutorial should auto-open on first launch"
+    assert settings.value("tutorial_seen", False, type=bool) is True
+    w.close()
+
+    opened.clear()
+    w2 = MainWindow()
+    QTest.qWait(600)
+    assert not opened, "tutorial must not auto-open on second launch"
+    w2.tutorial_btn.click()  # ...but is summonable anytime
+    assert opened, "sidebar button should open the tutorial"
+    w2.close()
+    settings.remove("tutorial_seen")

@@ -241,6 +241,11 @@ QMenu {
 }
 QMenu::item { padding: 7px 22px; border-radius: 5px; }
 QMenu::item:selected { background: $active; color: $accent; }
+
+QLabel#tutTitle { font-size: 21px; font-weight: 800; color: $text; }
+QLabel#tutBody { color: $subtle; font-size: 14px; }
+QLabel#tutBody b { color: $text; }
+QLabel#tutDots { font-size: 13px; }
 """)
 
 _ICON_TEMPLATE = Template("""<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
