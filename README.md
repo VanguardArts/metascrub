@@ -28,6 +28,7 @@ verify → prove nothing revealing remains (exit 1 if it does — CI-friendly)
 
 ```bash
 pip install .          # or: pipx install .
+pip install .[gui]     # with the desktop GUI (PySide6)
 ```
 
 Requires Python ≥ 3.9 and [mutagen](https://mutagen.readthedocs.io/).
@@ -59,6 +60,27 @@ metascrub verify ~/Music/releases
 `--release-subdir RELEASES` applies the album tag only to files under
 `RELEASES/` — singles get no album tag. `--exclude 'Samples/'` skips paths by
 regex (repeatable), e.g. sample/stem assets or another artist's archival folder.
+
+## Desktop GUI
+
+A dark-themed desktop app wraps the same engine:
+
+```bash
+pip install .[gui]
+metascrub-gui          # or: python -m metascrub.gui
+```
+
+![Scan view](docs/screenshot-scan.png)
+
+* **Scan** — every embedded tag/chunk in a color-coded table (red = would be
+  stripped), with a live filter.
+* **Clean** — credits/rules form, policy load/save, dry-run diff, then Apply
+  behind a confirmation dialog. Work runs on a background thread with a
+  progress bar.
+
+![Clean view](docs/screenshot-clean.png)
+
+* **Verify** — one-click provenance check with a big pass/fail badge.
 
 ## What gets stripped (defaults, all configurable)
 
@@ -146,11 +168,11 @@ CLI flags override policy values. See [examples/policy.example.yaml](examples/po
 
 ## Roadmap
 
+- [x] Desktop GUI (PySide6)
 - [ ] FLAC / Ogg / M4A adapters (Vorbis comments, MP4 atoms)
 - [ ] Cover-art replace (not just strip)
 - [ ] MusicBrainz lookup for real credits
 - [ ] Watch-folder mode
-- [ ] GUI (Tauri)
 
 ## A note on responsible use
 

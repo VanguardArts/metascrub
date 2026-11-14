@@ -9,7 +9,7 @@ from __future__ import annotations
 import json
 import os
 import re
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from typing import Any, Dict, List, Optional
 
 from .tags import (
@@ -62,6 +62,21 @@ class Policy:
 
     def signatures(self) -> List[str]:
         return [s.lower() for s in DEFAULT_SIGNATURES + self.extra_signatures]
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Serialize to a plain dict (JSON/YAML-safe), for policy files."""
+        return {
+            "credits": asdict(self.credits),
+            "titles": asdict(self.titles),
+            "genre_mode": self.genre_mode,
+            "genre_fixed": self.genre_fixed,
+            "remove_cover_art": self.remove_cover_art,
+            "strip_id3_frames": list(self.strip_id3_frames),
+            "strip_riff_chunks": list(self.strip_riff_chunks),
+            "strip_riff_info": list(self.strip_riff_info),
+            "exclude": list(self.exclude),
+            "extra_signatures": list(self.extra_signatures),
+        }
 
     # -- (de)serialisation ------------------------------------------------
     @classmethod

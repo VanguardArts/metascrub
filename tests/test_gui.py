@@ -1,0 +1,107 @@
+"""Headless GUI smoke tests (Qt offscreen platform)."""
+import os
+
+os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+
+import pytest
+
+pytest.importorskip("PySide6")
+
+from PySide6.QtWidgets import QApplication
+
+from metascrub.report import FileResult, TagEntry
+
+
+@pytest.fixture(scope="session")
+def qapp():
+    app = QApplication.instance() or QApplication(["metascrub-test"])
+    yield app
+
+
+def test_main_window_builds_and_navigates(qapp):
+    from metascrub.gui.main_window import MainWindow
+    w = MainWindow()
+    assert w.stack.count() == 3
+    for i, btn in enumerate(w.nav_buttons):
+        btn.click()
+        assert w.stack.currentIndex() == i
+    w.close()
+
+
+def test_clean_page_policy_roundtrip(qapp):
+    from metascrub.gui.pages import CleanPage
+    page = CleanPage(lambda: "/tmp")
+    page.artist.setText("Example Artist")
+    page.composer.setText("Jane Doe")
+    page.label.setText("Example Records")
+    page.copyright.setText("© 2026 Example Records. All rights reserved.")
+    page.year.setText("2026")
+    page.album.setText("[001] Midnight Drive")
+    page.release_subdir.setText("RELEASES")
+    page.label_prefix.setText("Example Records - ")
+    page.excludes.setText("Samples/, OtherArtist")
+    page.genre_mode.setCurrentIndex(0)
+
+    p = page.build_policy()
+    assert p.credits.artist == "Example Artist"
+    assert p.credits.composer == "Jane Doe"
+    assert p.credits.release_subdir == "RELEASES"
+    assert p.genre_mode == "brackets"
+    assert p.titles.strip_label_prefix == "Example Records - "
+    assert p.remove_cover_art is True
+    assert p.exclude == ["Samples/", "OtherArtist"]
+
+    # and the form can be re-populated from that policy
+    page2 = CleanPage(lambda: "/tmp")
+    page2.load_policy(p)
+    assert page2.artist.text() == "Example Artist"
+    assert page2.excludes.text() == "Samples/, OtherArtist"
+
+
+def test_clean_page_empty_fields_become_none(qapp):
+    from metascrub.gui.pages import CleanPage
+    p = CleanPage(lambda: "/tmp").build_policy()
+    assert p.credits.artist is None
+    assert p.credits.album is None
+    assert p.exclude == []
+
+
+def test_results_table_populates_and_filters(qapp):
+    from metascrub.gui.pages import ScanPage
+    page = ScanPage(lambda: "/tmp")
+    results = [
+        FileResult(path="a.mp3", format="mp3", entries=[
+            TagEntry("COMM::eng", "made with x", "strip", "tag"),
+            TagEntry("TIT2", "Song", "keep", "tag"),
+        ]),
+        FileResult(path="b.wav", format="wav", entries=[
+            TagEntry("chunk:C2PA", "33 bytes", "strip", "provenance"),
+        ]),
+        FileResult(path="skip/loop.wav", format="wav", skipped=True),
+    ]
+    page.populate(results)
+    # 2 + 1 entries + 1 skipped row
+    assert page.table.rowCount() == 4
+    actions = {page.table.item(r, 3).text() for r in range(page.table.rowCount())}
+    assert "strip" in actions and "keep" in actions and "skip" in actions
+
+    page.filter_edit.setText("c2pa")
+    page.populate(results)
+    assert page.table.rowCount() == 1
+    assert page.table.item(0, 2).text() == "chunk:C2PA"
+
+
+def test_verify_badge_states(qapp):
+    from metascrub.gui.pages import VerifyPage
+    page = VerifyPage(lambda: "/tmp")
+    page._on_results([FileResult(path="a.mp3", format="mp3", entries=[])])
+    assert page.badge.objectName() == "badgeOk"
+    page._on_results([FileResult(path="a.mp3", format="mp3", entries=[
+        TagEntry("COMM::eng", "made with x", "strip", "tag")])])
+    assert page.badge.objectName() == "badgeBad"
+    assert page.table.rowCount() == 1
+
+
+def test_gui_entrypoint_imports(qapp):
+    from metascrub.gui import app
+    assert callable(app.main)
