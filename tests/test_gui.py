@@ -255,3 +255,13 @@ def test_auto_clean_end_to_end(qapp, tmp_path, monkeypatch):
     assert not any(e.action == "strip"
                    for r in scan.results for e in r.entries),         "re-scan should show nothing left to strip"
     w.close()
+def test_progress_caption_lives_on_label(qapp):
+    from metascrub.gui.pages import ScanPage
+    page = ScanPage(lambda: "/tmp")
+    assert not page.progress.isTextVisible()  # bar shows fill only
+    assert page.progress_label.objectName() == "progress"
+    page._update_progress(page.progress, 3, 10, "sub/dir/some-track.wav")
+    assert page.progress.value() == 3
+    assert page.progress.maximum() == 10
+    assert "3/10" in page.progress_label.text()
+    assert "some-track.wav" in page.progress_label.text()

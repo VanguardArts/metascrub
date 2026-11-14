@@ -216,6 +216,7 @@ QLabel#badgeIdle {
     border-radius: 12px; padding: 18px; font-size: 16px; font-weight: 600;
 }
 QLabel#summary { color: $subtle; font-weight: 600; padding: 4px 2px; }
+QLabel#progress { color: $muted; font-size: 11px; padding: 0 2px; }
 
 QStatusBar { background: $surface2; color: $muted; border-top: 1px solid $border; }
 QToolTip { background: $hover; color: $text; border: 1px solid $border_soft; padding: 6px; }

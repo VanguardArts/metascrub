@@ -125,6 +125,12 @@ class _BusyPage(QWidget):
         super().__init__()
         self._root_provider = root_provider
         self._worker: Optional[Worker] = None
+        # caption lives on a label above the bar: text drawn over the
+        # accent-colored chunk fill is unreadable, and QSS can't do
+        # two-tone text inside QProgressBar
+        self.progress_label = QLabel("")
+        self.progress_label.setObjectName("progress")
+        self.progress_label.setVisible(False)
 
     def root(self) -> str:
         return self._root_provider().strip()
@@ -136,17 +142,28 @@ class _BusyPage(QWidget):
             b.setEnabled(False)
         progress.setVisible(True)
         progress.setRange(0, 0)  # indeterminate until first progress signal
+        self.progress_label.setText("Starting…")
+        self.progress_label.setVisible(True)
         worker.progressed.connect(
-            lambda i, n, rel: (progress.setRange(0, n), progress.setValue(i),
-                               progress.setFormat(f"{i}/{n}  {rel}")))
+            lambda i, n, rel: self._update_progress(progress, i, n, rel))
         worker.done.connect(lambda results: self._finish(run_buttons, progress))
         worker.failed.connect(lambda msg: self._fail(msg, run_buttons, progress))
         worker.start()
+
+    def _update_progress(self, progress: QProgressBar, i: int, n: int,
+                         rel: str):
+        progress.setRange(0, n)
+        progress.setValue(i)
+        fm = self.progress_label.fontMetrics()
+        self.progress_label.setText(
+            fm.elidedText(f"{i}/{n}  —  {rel}", Qt.TextElideMode.ElideMiddle,
+                          max(self.progress_label.width(), 200)))
 
     def _finish(self, buttons, progress):
         for b in buttons:
             b.setEnabled(True)
         progress.setVisible(False)
+        self.progress_label.setVisible(False)
 
     def _fail(self, msg, buttons, progress):
         self._finish(buttons, progress)
@@ -187,7 +204,9 @@ class ScanPage(_BusyPage):
         lay.addLayout(bar)
 
         self.progress = QProgressBar()
+        self.progress.setTextVisible(False)
         self.progress.setVisible(False)
+        lay.addWidget(self.progress_label)
         lay.addWidget(self.progress)
 
         self.summary = QLabel("Pick a folder above, then scan to see every embedded tag.")
@@ -378,7 +397,9 @@ class CleanPage(_BusyPage):
         lay.addLayout(actions)
 
         self.progress = QProgressBar()
+        self.progress.setTextVisible(False)
         self.progress.setVisible(False)
+        lay.addWidget(self.progress_label)
         lay.addWidget(self.progress)
 
         self.summary = QLabel("Fill in the credits, run a dry run, review the diff, then apply.")
@@ -517,7 +538,9 @@ class VerifyPage(_BusyPage):
         lay.addWidget(self.badge)
 
         self.progress = QProgressBar()
+        self.progress.setTextVisible(False)
         self.progress.setVisible(False)
+        lay.addWidget(self.progress_label)
         lay.addWidget(self.progress)
 
         self.table = _make_table()
