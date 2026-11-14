@@ -50,13 +50,10 @@ jobs:
         include:
           - os: ubuntu-latest
             platform: linux
-            gui_name: metascrub-gui
           - os: windows-latest
             platform: windows
-            gui_name: metascrub-gui.exe
           - os: macos-latest
             platform: macos
-            gui_name: metascrub-gui
 
     runs-on: ${{ matrix.os }}
 
@@ -80,30 +77,82 @@ jobs:
         run: |
           pyinstaller --onefile --windowed --name metascrub-gui packaging/gui_main.py
 
-      - name: Package artifacts (unix)
+      # ---------------- Linux: .deb + AppImage + CLI tarball -------------
+      - name: Render icon PNG (linux)
+        if: matrix.platform == 'linux'
+        run: |
+          sudo apt-get update && sudo apt-get install -y librsvg2-bin
+          rsvg-convert -w 256 -h 256 src/metascrub/gui/assets/icon.svg \
+            -o dist/metascrub.png
+
+      - name: Package .deb (linux)
+        if: matrix.platform == 'linux'
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}" DIST_DIR=dist bash packaging/make_deb.sh
+
+      - name: Package AppImage (linux)
+        if: matrix.platform == 'linux'
+        run: |
+          curl -fsSL -o /tmp/appimagetool \
+            https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage
+          chmod +x /tmp/appimagetool
+          DIST_DIR=dist APPIMAGETOOL=/tmp/appimagetool \
+            bash packaging/make_appimage.sh
+
+      - name: Package CLI tarball (unix)
         if: runner.os != 'Windows'
         run: |
           cd dist
           tar czf ../metascrub-cli-${{ matrix.platform }}.tar.gz metascrub-cli
-          if [ "${{ matrix.platform }}" = "macos" ]; then
-            ditto -c -k --sequesterRsrc metascrub-gui.app ../metascrub-gui-${{ matrix.platform }}.zip
-          else
-            tar czf ../metascrub-gui-${{ matrix.platform }}.tar.gz ${{ matrix.gui_name }}
-          fi
 
-      - name: Package artifacts (windows)
-        if: runner.os == 'Windows'
+      # ---------------- macOS: .dmg --------------------------------------
+      - name: Package .dmg (macos)
+        if: matrix.platform == 'macos'
+        run: |
+          DIST_DIR=dist bash packaging/make_dmg.sh
+
+      # ---------------- Windows: Inno Setup .exe + CLI zip ---------------
+      - name: Install Inno Setup (windows)
+        if: matrix.platform == 'windows'
+        run: choco install innosetup -y --no-progress
+
+      - name: Build installer (windows)
+        if: matrix.platform == 'windows'
         shell: pwsh
         run: |
-          Compress-Archive dist/metascrub-cli.exe metascrub-cli-windows.zip
-          Compress-Archive dist/metascrub-gui.exe metascrub-gui-windows.zip
+          $ver = ${env:GITHUB_REF_NAME}.TrimStart('v')
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" /DAppVersion=$ver packaging\metascrub.iss
+
+      - name: Package CLI zip (windows)
+        if: matrix.platform == 'windows'
+        shell: pwsh
+        run: Compress-Archive dist/metascrub-cli.exe metascrub-cli-windows.zip
+
+      # ---------------- upload -------------------------------------------
+      - uses: actions/upload-artifact@v4
+        if: matrix.platform == 'linux'
+        with:
+          name: metascrub-linux
+          path: |
+            dist/metascrub_*_amd64.deb
+            dist/metascrub-gui-linux.AppImage
+            metascrub-cli-linux.tar.gz
 
       - uses: actions/upload-artifact@v4
+        if: matrix.platform == 'macos'
         with:
-          name: metascrub-${{ matrix.platform }}
+          name: metascrub-macos
           path: |
-            metascrub-cli-${{ matrix.platform }}.*
-            metascrub-gui-${{ matrix.platform }}.*
+            dist/metascrub-gui-macos.dmg
+            metascrub-cli-macos.tar.gz
+
+      - uses: actions/upload-artifact@v4
+        if: matrix.platform == 'windows'
+        with:
+          name: metascrub-windows
+          path: |
+            dist/metascrub-setup-windows.exe
+            metascrub-cli-windows.zip
 
   release:
     if: startsWith(github.ref, 'refs/tags/')
@@ -117,6 +166,11 @@ jobs:
       - uses: softprops/action-gh-release@v2
         with:
           files: |
-            metascrub-cli-*
-            metascrub-gui-*
+            metascrub-setup-windows.exe
+            metascrub-cli-windows.zip
+            metascrub-gui-macos.dmg
+            metascrub-cli-macos.tar.gz
+            metascrub-gui-linux.AppImage
+            metascrub_*_amd64.deb
+            metascrub-cli-linux.tar.gz
           generate_release_notes: true

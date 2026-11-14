@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=metascrub
+GenericName=Audio metadata cleaner
+Comment=Byte-safe audio metadata hygiene
+Exec=metascrub-gui
+Icon=metascrub
+Terminal=false
+Categories=Utility;AudioVideo;Audio;
+Keywords=metadata;audio;tags;privacy;
