@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "metascrub"
+version = "0.0.1"
+description = "Byte-safe audio metadata hygiene: inspect, strip provenance (comments, lyrics, C2PA, origin URLs), re-tag credits, clean titles."
+readme = "README.md"
+license = { text = "MIT" }
+authors = [{ name = "Example Records" }]
+requires-python = ">=3.9"
+keywords = ["metadata", "audio", "id3", "riff", "c2pa", "tagging", "privacy"]
+dependencies = ["mutagen>=1.45"]
+
+[project.optional-dependencies]
+yaml = ["PyYAML>=6.0"]
+dev = ["pytest>=7", "PyYAML>=6.0"]
+
+[project.scripts]
+metascrub = "metascrub.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/VanguardArts/metascrub"
+Issues = "https://github.com/VanguardArts/metascrub/issues"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

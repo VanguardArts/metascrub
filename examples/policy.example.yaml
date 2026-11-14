@@ -1,0 +1,26 @@
+# metascrub policy example — the "strip AI-service fingerprints, apply label
+# credits, clean titles" setup. Load with:  metascrub clean <path> --policy policy.yaml
+credits:
+  artist: Example Artist
+  album_artist: Example Artist
+  composer: Jane Doe            # production credit
+  label: Example Records
+  copyright: "© 2026 Example Records. All rights reserved."
+  year: "2026"
+  album: "[001] Midnight Drive"                # release name
+  release_subdir: RELEASES                 # only files under RELEASES/ get the album tag;
+                                           # singles get no album
+titles:
+  enabled: true
+  strip_label_prefix: "Example Records - "   # "Example Records - [DNB] - X (2026)" -> "X"
+  strip_genre_bracket: true                # strip leading "[Genre] - "
+  strip_genre_prefixes: ["DnB", "2step", "Speed Garage"]   # bare "DnB - X" style
+  strip_year_suffix: true                  # strip "(2026)"
+genre_mode: brackets                       # per-track genre from the [Genre] in the filename
+remove_cover_art: true
+exclude:                                   # regexes matched against relative paths
+  - 'OtherArtist'                               # another artist's archival folder
+  - 'OldArchive'
+  - 'Samples/'                             # Ableton sample assets, not release tracks
+extra_signatures:                          # extra strings `verify` will hunt for
+  - aiuser42
