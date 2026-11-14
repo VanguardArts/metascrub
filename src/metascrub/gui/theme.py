@@ -108,6 +108,19 @@ QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height: 0; }
 QScrollBar:horizontal { background: transparent; height: 10px; margin: 2px; }
 QScrollBar::handle:horizontal { background: #2a3548; border-radius: 5px; min-width: 30px; }
 QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
+
+QToolButton#places {
+    background: #1f2a3d; color: #e6edf3; border: 1px solid #2a3548;
+    border-radius: 8px; padding: 7px 12px; font-weight: 600;
+}
+QToolButton#places:hover { background: #263449; border-color: #37506e; }
+QToolButton#places::menu-indicator { image: none; width: 0; }
+QMenu {
+    background: #141a24; color: #e6edf3; border: 1px solid #2a3548;
+    border-radius: 8px; padding: 4px;
+}
+QMenu::item { padding: 7px 22px; border-radius: 5px; }
+QMenu::item:selected { background: #1f2a3d; color: #22d3ee; }
 """
 
 ICON_SVG = """<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">

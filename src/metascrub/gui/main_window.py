@@ -13,6 +13,7 @@ from PySide6.QtWidgets import (
     QLabel,
     QLineEdit,
     QMainWindow,
+    QMenu,
     QPushButton,
     QStackedWidget,
     QToolButton,
@@ -22,6 +23,7 @@ from PySide6.QtWidgets import (
 
 from .. import __version__
 from .pages import CleanPage, ScanPage, VerifyPage
+from .places import mounted_places
 from .theme import ICON_SVG
 
 
@@ -74,12 +76,23 @@ class MainWindow(QMainWindow):
         browse = QPushButton("Browse…")
         browse.clicked.connect(self._browse)
 
+        self.places_menu = QMenu(self)
+        self.places_menu.aboutToShow.connect(self._fill_places)
+        places_btn = QToolButton()
+        places_btn.setObjectName("places")
+        places_btn.setText("Places ▾")
+        places_btn.setToolTip(
+            "Jump to Home, Computer, or a mounted drive (USB, HDD, VeraCrypt…)")
+        places_btn.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
+        places_btn.setMenu(self.places_menu)
+
         h.addWidget(icon_lbl)
         h.addWidget(title)
         h.addWidget(subtitle)
         h.addSpacing(24)
         h.addWidget(QLabel("Folder:"))
         h.addWidget(self.path_edit, 1)
+        h.addWidget(places_btn)
         h.addWidget(browse)
         root_lay.addWidget(header)
 
@@ -137,6 +150,17 @@ class MainWindow(QMainWindow):
 
     def root_path(self) -> str:
         return self.path_edit.text()
+
+    def _fill_places(self):
+        """Rebuild the Places menu live so freshly mounted drives appear."""
+        self.places_menu.clear()
+        for place in mounted_places():
+            act = self.places_menu.addAction(f"{place.label}  —  {place.path}")
+            if place.detail:
+                act.setToolTip(place.detail)
+                act.setStatusTip(place.detail)
+            act.triggered.connect(
+                lambda _checked=False, p=place.path: self.path_edit.setText(p))
 
     def _browse(self):
         start = self.path_edit.text() or str(Path.home())

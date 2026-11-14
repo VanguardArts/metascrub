@@ -110,3 +110,26 @@ def test_verify_badge_states(qapp):
 def test_gui_entrypoint_imports(qapp):
     from metascrub.gui import app
     assert callable(app.main)
+def test_places_discovery(qapp):
+    import os
+    from pathlib import Path
+
+    from metascrub.gui.places import mounted_places
+    places = mounted_places()
+    assert places, "expected at least Home"
+    assert places[0].path == str(Path.home())
+    assert all(os.path.exists(p.path) for p in places)
+
+
+def test_places_menu_populates_and_selects(qapp):
+    from metascrub.gui.main_window import MainWindow
+    w = MainWindow()
+    w._fill_places()
+    actions = w.places_menu.actions()
+    assert len(actions) >= 2
+    assert actions[0].text().startswith("Home")
+    # selecting a place fills the path field
+    actions[0].trigger()
+    from pathlib import Path
+    assert w.path_edit.text() == str(Path.home())
+    w.close()
