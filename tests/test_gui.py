@@ -265,3 +265,20 @@ def test_progress_caption_lives_on_label(qapp):
     assert page.progress.maximum() == 10
     assert "3/10" in page.progress_label.text()
     assert "some-track.wav" in page.progress_label.text()
+def test_long_paths_do_not_expand_window(qapp):
+    from PySide6.QtWidgets import QSizePolicy
+
+    from metascrub.gui.main_window import MainWindow
+    w = MainWindow()
+    w.resize(1180, 780)
+    w.show()
+    scan = w.pages[0]
+    assert (scan.progress_label.sizePolicy().horizontalPolicy()
+            == QSizePolicy.Policy.Ignored)
+    scan.progress.setVisible(True)
+    scan.progress_label.setVisible(True)
+    scan._update_progress(scan.progress, 2, 9,
+                          "deep/" + "nested-" * 100 + "/track.wav")
+    qapp.processEvents()
+    assert w.width() <= 1180, "window must not grow to fit long captions"
+    w.close()

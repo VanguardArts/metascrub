@@ -29,6 +29,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
+from PySide6.QtWidgets import QSizePolicy
 
 from .. import scanner
 from ..policy import Policy
@@ -131,6 +132,12 @@ class _BusyPage(QWidget):
         self.progress_label = QLabel("")
         self.progress_label.setObjectName("progress")
         self.progress_label.setVisible(False)
+        # never let the caption's size hint grow the window: long paths
+        # would otherwise push the layout's minimum size past the current
+        # window width and Qt resizes the top-level window to fit
+        self.progress_label.setMinimumWidth(0)
+        self.progress_label.setSizePolicy(
+            QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
 
     def root(self) -> str:
         return self._root_provider().strip()
