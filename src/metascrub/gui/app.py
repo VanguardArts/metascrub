@@ -14,7 +14,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         return 2
 
     from .. import __version__
-    from .main_window import MainWindow
+    from .main_window import MainWindow, app_icon
     from .theme import apply_theme
 
     app = QApplication(argv if argv is not None else sys.argv)
@@ -22,6 +22,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     app.setApplicationVersion(__version__)
     app.setOrganizationName("metascrub")
     apply_theme(app)
+    app.setWindowIcon(app_icon())
 
     window = MainWindow()
     window.show()

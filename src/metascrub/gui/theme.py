@@ -110,6 +110,16 @@ QScrollBar::handle:horizontal { background: #2a3548; border-radius: 5px; min-wid
 QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
 """
 
+ICON_SVG = """<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <rect x="4" y="4" width="120" height="120" rx="26" fill="#141a24"/>
+  <rect x="4" y="4" width="120" height="120" rx="26" fill="none" stroke="#263248" stroke-width="2"/>
+  <rect x="26" y="54" width="10" height="20" rx="5" fill="#22d3ee"/>
+  <rect x="42" y="40" width="10" height="48" rx="5" fill="#2dd4bf"/>
+  <rect x="58" y="26" width="10" height="76" rx="5" fill="#22d3ee"/>
+  <rect x="74" y="46" width="10" height="36" rx="5" fill="#2dd4bf"/>
+  <rect x="90" y="58" width="10" height="12" rx="5" fill="#22d3ee"/>
+</svg>"""
+
 
 def apply_theme(app) -> None:
     app.setStyleSheet(QSS)

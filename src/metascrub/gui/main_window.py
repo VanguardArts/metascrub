@@ -3,8 +3,9 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from PySide6.QtCore import QSettings, Qt
-from PySide6.QtGui import QIcon
+from PySide6.QtCore import QByteArray, QSettings, Qt
+from PySide6.QtGui import QIcon, QPainter, QPixmap
+from PySide6.QtSvg import QSvgRenderer
 from PySide6.QtWidgets import (
     QFileDialog,
     QFrame,
@@ -21,16 +22,25 @@ from PySide6.QtWidgets import (
 
 from .. import __version__
 from .pages import CleanPage, ScanPage, VerifyPage
+from .theme import ICON_SVG
 
-_ICON = Path(__file__).parent / "assets" / "icon.svg"
+
+def app_icon(size: int = 128) -> QIcon:
+    """Render the embedded SVG icon (no data files - PyInstaller-friendly)."""
+    pixmap = QPixmap(size, size)
+    pixmap.fill(Qt.GlobalColor.transparent)
+    renderer = QSvgRenderer(QByteArray(ICON_SVG.encode("utf-8")))
+    painter = QPainter(pixmap)
+    renderer.render(painter)
+    painter.end()
+    return QIcon(pixmap)
 
 
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle(f"metascrub {__version__}")
-        if _ICON.exists():
-            self.setWindowIcon(QIcon(str(_ICON)))
+        self.setWindowIcon(app_icon())
         self.resize(1180, 780)
 
         self._settings = QSettings("metascrub", "metascrub")
@@ -48,8 +58,9 @@ class MainWindow(QMainWindow):
         h.setContentsMargins(16, 12, 16, 12)
         h.setSpacing(10)
 
-        icon_lbl = QLabel("◈")
+        icon_lbl = QLabel()
         icon_lbl.setObjectName("appIcon")
+        icon_lbl.setPixmap(app_icon(30).pixmap(30, 30))
         title = QLabel("metascrub")
         title.setObjectName("appTitle")
         subtitle = QLabel("byte-safe audio metadata hygiene")

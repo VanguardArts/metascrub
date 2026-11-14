@@ -26,6 +26,24 @@ verify → prove nothing revealing remains (exit 1 if it does — CI-friendly)
 
 ## Install
 
+### Prebuilt binaries (no Python needed)
+
+Grab an archive for your platform from
+[Releases](https://github.com/VanguardArts/metascrub/releases):
+
+| Platform | CLI | GUI |
+|----------|-----|-----|
+| Linux    | `metascrub-cli-linux.tar.gz`   | `metascrub-gui-linux.tar.gz` |
+| Windows  | `metascrub-cli-windows.zip`    | `metascrub-gui-windows.zip` |
+| macOS    | `metascrub-cli-macos.tar.gz`   | `metascrub-gui-macos.zip` (`.app`) |
+
+The binaries are unsigned, so Windows SmartScreen and macOS Gatekeeper will
+warn on first run. On Windows choose **More info → Run anyway**; on macOS
+right-click the app → **Open** (or run
+`xattr -d com.apple.quarantine metascrub-gui.app`).
+
+### From source (pip)
+
 ```bash
 pip install .          # or: pipx install .
 pip install .[gui]     # with the desktop GUI (PySide6)
