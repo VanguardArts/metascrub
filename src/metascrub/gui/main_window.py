@@ -114,9 +114,12 @@ class MainWindow(QMainWindow):
         side.setSpacing(2)
 
         self.stack = QStackedWidget()
+        clean_page = CleanPage(self.root_path)
         self.pages = [
-            ScanPage(self.root_path),
-            CleanPage(self.root_path),
+            # scan predicts with the Clean form's policy: what you see as
+            # "strip" is exactly what Auto-clean will do
+            ScanPage(self.root_path, policy_provider=clean_page.build_policy),
+            clean_page,
             VerifyPage(self.root_path),
         ]
         self.nav_buttons = []
@@ -158,7 +161,7 @@ class MainWindow(QMainWindow):
         self.statusBar().showMessage("Ready")
 
         if not self._settings.value("tutorial_seen", False, type=bool):
-            QTimer.singleShot(400, self.show_tutorial)
+            QTimer.singleShot(400, self._maybe_show_tutorial)
 
         for page in self.pages:
             if isinstance(page, ScanPage):
@@ -170,6 +173,12 @@ class MainWindow(QMainWindow):
 
     def root_path(self) -> str:
         return self.path_edit.text()
+
+    def _maybe_show_tutorial(self):
+        # the window may be gone (or never shown, e.g. in tests) by the
+        # time the timer fires - only auto-open for a real visible launch
+        if self.isVisible():
+            self.show_tutorial()
 
     def show_tutorial(self):
         dlg = TutorialDialog(self)

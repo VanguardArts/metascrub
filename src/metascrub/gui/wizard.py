@@ -38,7 +38,10 @@ PAGES = [
      "Rows marked <b>strip</b> (red) are what a clean would remove; "
      "<b>set</b> (green) are credits that would be written; <b>keep</b> "
      "stays untouched.<br><br>"
-     "Use the filter box to search files, tags or values."),
+     "Use the filter box to search files, tags or values.<br><br>"
+     "One-click option: after a scan, <b>&#10024; Auto-clean</b> strips "
+     "everything flagged, applies the Clean page credits and re-scans - "
+     "with a single confirmation."),
     ("3 · Clean",
      "Fill in your credits on the <b>Clean</b> page - artist, composer, "
      "label, copyright, year, album.<br><br>"

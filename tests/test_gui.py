@@ -193,6 +193,7 @@ def test_tutorial_first_launch_and_reopen(qapp, monkeypatch):
                         lambda self: opened.append(1) or 0)
 
     w = MainWindow()
+    w.show()  # auto-open only happens for a visible window
     QTest.qWait(600)  # let the first-launch timer fire
     assert opened, "tutorial should auto-open on first launch"
     assert settings.value("tutorial_seen", False, type=bool) is True
@@ -200,9 +201,57 @@ def test_tutorial_first_launch_and_reopen(qapp, monkeypatch):
 
     opened.clear()
     w2 = MainWindow()
+    w2.show()
     QTest.qWait(600)
     assert not opened, "tutorial must not auto-open on second launch"
     w2.tutorial_btn.click()  # ...but is summonable anytime
     assert opened, "sidebar button should open the tutorial"
     w2.close()
     settings.remove("tutorial_seen")
+def test_scan_uses_clean_form_policy(qapp):
+    from metascrub.gui.main_window import MainWindow
+    w = MainWindow()
+    scan, clean = w.pages[0], w.pages[1]
+    clean.artist.setText("Example Artist")
+    assert scan._policy().credits.artist == "Example Artist"
+    assert not scan.auto_btn.isEnabled()  # nothing scanned yet
+    w.close()
+
+
+def test_auto_clean_end_to_end(qapp, tmp_path, monkeypatch):
+    from PySide6.QtTest import QTest
+    from PySide6.QtWidgets import QMessageBox
+
+    from conftest import make_wav
+    from metascrub import scanner
+    from metascrub.gui.main_window import MainWindow
+    from metascrub.policy import Policy
+
+    make_wav(tmp_path / "Example Records - [DNB] - Neon Skyline (2026).wav",
+             info={"ICMT": "made with suno; id=x", "ISFT": "Lavf60.16.100"})
+
+    w = MainWindow()  # never shown -> no first-launch tutorial interferes
+    w.path_edit.setText(str(tmp_path))
+    scan = w.pages[0]
+
+    # auto-accept the confirmation dialog
+    monkeypatch.setattr(QMessageBox, "exec", lambda _self: QMessageBox.Yes)
+
+    scan.run_scan()
+    scan._worker.wait(10000)
+    QTest.qWait(100)
+    assert scan.auto_btn.isEnabled()
+    assert "1" in scan.auto_btn.text()
+
+    scan.auto_btn.click()
+    QTest.qWait(100)
+    scan._worker.wait(10000)   # the clean worker
+    QTest.qWait(200)
+    scan._worker.wait(10000)   # the automatic re-scan worker
+    QTest.qWait(100)
+
+    hits = sum(len(r.entries) for r in scanner.verify(str(tmp_path), Policy()))
+    assert hits == 0, "file should be provenance-clean after auto-clean"
+    assert not any(e.action == "strip"
+                   for r in scan.results for e in r.entries),         "re-scan should show nothing left to strip"
+    w.close()

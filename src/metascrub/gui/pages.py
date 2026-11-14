@@ -158,9 +158,11 @@ class _BusyPage(QWidget):
 # --------------------------------------------------------------------------
 
 class ScanPage(_BusyPage):
-    def __init__(self, root_provider):
+    def __init__(self, root_provider,
+                 policy_provider: Optional[Callable[[], Policy]] = None):
         super().__init__(root_provider)
         self.results: List[FileResult] = []
+        self._policy_provider = policy_provider
 
         lay = QVBoxLayout(self)
         lay.setContentsMargins(18, 18, 18, 18)
@@ -170,10 +172,17 @@ class ScanPage(_BusyPage):
         self.scan_btn = QPushButton("Scan folder")
         self.scan_btn.setObjectName("accent")
         self.scan_btn.clicked.connect(self.run_scan)
+        self.auto_btn = QPushButton("✨ Auto-clean")
+        self.auto_btn.setEnabled(False)
+        self.auto_btn.setToolTip(
+            "One click: strip everything the scan flagged, apply the Clean "
+            "page credits, then re-scan. A single confirmation, no forms.")
+        self.auto_btn.clicked.connect(self.run_auto)
         self.filter_edit = QLineEdit()
         self.filter_edit.setPlaceholderText("Filter results…")
         self.filter_edit.textChanged.connect(lambda _t: self.populate(self.results))
         bar.addWidget(self.scan_btn)
+        bar.addWidget(self.auto_btn)
         bar.addWidget(self.filter_edit, 1)
         lay.addLayout(bar)
 
@@ -188,12 +197,31 @@ class ScanPage(_BusyPage):
         self.table = _make_table()
         lay.addWidget(self.table, 1)
 
+    def _policy(self) -> Policy:
+        """Scan predictions use the Clean form's policy, so 'what would be
+        stripped' is exactly what Auto-clean will do."""
+        return self._policy_provider() if self._policy_provider else Policy()
+
+    def _actionable(self) -> List[FileResult]:
+        """Files with at least one strip/set action in the last scan."""
+        return [r for r in self.results
+                if not r.skipped and not r.error
+                and any(e.action in ("strip", "set") for e in r.entries)]
+
+    def _refresh_auto_btn(self):
+        n = len(self._actionable())
+        self.auto_btn.setEnabled(n > 0)
+        self.auto_btn.setText(f"✨ Auto-clean ({n})" if n else "✨ Auto-clean")
+
     def run_scan(self):
         root = self.root()
         if not root:
             QMessageBox.warning(self, "metascrub", "Choose a folder first.")
             return
-        worker = Worker(scanner.scan, root, Policy())
+        if self._worker and self._worker.isRunning():
+            return
+        self.auto_btn.setEnabled(False)
+        worker = Worker(scanner.scan, root, self._policy())
         worker.done.connect(self._on_results)
         self._start(worker, [self.scan_btn], self.progress)
 
@@ -204,6 +232,57 @@ class ScanPage(_BusyPage):
         self.summary.setText(
             f"{len(results)} file(s) · {n} embedded tag(s)/chunk(s) found — "
             f"red entries are what a clean would strip.")
+        self._refresh_auto_btn()
+
+    # -- auto-clean ------------------------------------------------------
+    def run_auto(self):
+        if self._worker and self._worker.isRunning():
+            return
+        files = self._actionable()
+        if not files:
+            return
+        strips = sum(1 for r in files for e in r.entries if e.action == "strip")
+        sets = sum(1 for r in files for e in r.entries if e.action == "set")
+        skipped = sum(1 for r in self.results if r.skipped)
+
+        box = QMessageBox(self)
+        box.setWindowTitle("metascrub — Auto-clean")
+        box.setIcon(QMessageBox.Question)
+        box.setText(f"Auto-clean {len(files)} file(s)?")
+        box.setInformativeText(
+            f"This will strip {strips} provenance tag(s)"
+            + (f" and set {sets} credit tag(s)" if sets else "")
+            + " in place, using the current Clean page settings, then "
+            "re-scan so you can see the result."
+            + (f"\n{skipped} excluded file(s) stay untouched." if skipped else "")
+            + "\n\nAudio is never re-encoded and WAV writes are "
+            "hash-verified, but existing tags are permanently replaced. "
+            "This cannot be undone.")
+        box.setStandardButtons(QMessageBox.Yes | QMessageBox.Cancel)
+        box.button(QMessageBox.Yes).setText("Auto-clean")
+        box.setDefaultButton(QMessageBox.Cancel)
+        if box.exec() != QMessageBox.Yes:
+            return
+
+        worker = Worker(scanner.clean, self.root(), self._policy(),
+                        dry_run=False)
+        worker.done.connect(self._on_auto_done)
+        self._start(worker, [self.scan_btn, self.auto_btn], self.progress)
+
+    def _on_auto_done(self, results):
+        errors = [r for r in results if r.error]
+        treated = [r for r in results if not r.skipped and not r.error]
+        if errors:
+            QMessageBox.warning(
+                self, "metascrub — Auto-clean",
+                "Finished with %d error(s):\n%s" % (
+                    len(errors),
+                    "\n".join(f"{r.path}: {r.error}" for r in errors[:10])))
+        self.summary.setText(
+            f"Auto-clean finished: {len(treated)} file(s) treated"
+            + (f" · {len(errors)} error(s)" if errors else "")
+            + " — re-scanning…")
+        self.run_scan()
 
     def populate(self, results):
         _populate_table(self.table, results, self.filter_edit.text())
