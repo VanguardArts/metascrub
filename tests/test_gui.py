@@ -16,6 +16,11 @@ from metascrub.report import FileResult, TagEntry
 def qapp():
     app = QApplication.instance() or QApplication(["metascrub-test"])
     yield app
+    # Teardown hygiene: close windows + flush deferred deletes so Qt has
+    # less work (and less to trip over) at interpreter exit.
+    app.closeAllWindows()
+    app.sendPostedEvents(None, 0)
+    app.processEvents()
 
 
 def test_main_window_builds_and_navigates(qapp):
