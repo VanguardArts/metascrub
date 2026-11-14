@@ -13,15 +13,19 @@ def main(argv: Optional[List[str]] = None) -> int:
               file=sys.stderr)
         return 2
 
+    from PySide6.QtCore import QSettings
+
     from .. import __version__
     from .main_window import MainWindow, app_icon
-    from .theme import apply_theme
+    from .theme import DEFAULT_THEME, apply_theme
 
     app = QApplication(argv if argv is not None else sys.argv)
     app.setApplicationName("metascrub")
     app.setApplicationVersion(__version__)
     app.setOrganizationName("metascrub")
-    apply_theme(app)
+    saved_theme = QSettings("metascrub", "metascrub").value(
+        "theme", DEFAULT_THEME)
+    apply_theme(app, saved_theme)
     app.setWindowIcon(app_icon())
 
     window = MainWindow()

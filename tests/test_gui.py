@@ -133,3 +133,33 @@ def test_places_menu_populates_and_selects(qapp):
     from pathlib import Path
     assert w.path_edit.text() == str(Path.home())
     w.close()
+def test_eight_themes_render(qapp):
+    from metascrub.gui import theme
+    names = theme.theme_names()
+    assert len(names) == 8  # 7 accent colors + slate/anthracite
+    assert "slate" in names and "tidal" in names
+    for n in names:
+        assert "$" not in theme.qss(n), n
+        assert theme.icon_svg(n).startswith("<svg"), n
+    # slate/anthracite has a neutral gray background, unlike the others
+    assert theme.palette("slate")["bg"] == "#17191c"
+    assert theme.palette("tidal")["bg"] == "#0e1116"
+
+
+def test_theme_picker_switches_and_persists(qapp):
+    from PySide6.QtWidgets import QApplication
+
+    from metascrub.gui import theme
+    from metascrub.gui.main_window import MainWindow
+    w = MainWindow()
+    assert w.theme_combo.count() == 8
+    idx = w.theme_combo.findData("slate")
+    w.theme_combo.setCurrentIndex(idx)
+    assert theme.current_theme() == "slate"
+    assert w._settings.value("theme") == "slate"
+    assert "#17191c" in QApplication.instance().styleSheet()
+    # back to default, and forget the setting so user prefs stay untouched
+    w.theme_combo.setCurrentIndex(w.theme_combo.findData(theme.DEFAULT_THEME))
+    assert theme.current_theme() == theme.DEFAULT_THEME
+    w._settings.remove("theme")
+    w.close()

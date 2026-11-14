@@ -7,6 +7,8 @@ from PySide6.QtCore import QByteArray, QSettings, Qt
 from PySide6.QtGui import QIcon, QPainter, QPixmap
 from PySide6.QtSvg import QSvgRenderer
 from PySide6.QtWidgets import (
+    QApplication,
+    QComboBox,
     QFileDialog,
     QFrame,
     QHBoxLayout,
@@ -24,14 +26,15 @@ from PySide6.QtWidgets import (
 from .. import __version__
 from .pages import CleanPage, ScanPage, VerifyPage
 from .places import mounted_places
-from .theme import ICON_SVG
+from .theme import (current_theme, icon_svg, theme_label, theme_names,
+                    apply_theme)
 
 
 def app_icon(size: int = 128) -> QIcon:
-    """Render the embedded SVG icon (no data files - PyInstaller-friendly)."""
+    """Render the embedded SVG icon in the active theme's palette."""
     pixmap = QPixmap(size, size)
     pixmap.fill(Qt.GlobalColor.transparent)
-    renderer = QSvgRenderer(QByteArray(ICON_SVG.encode("utf-8")))
+    renderer = QSvgRenderer(QByteArray(icon_svg().encode("utf-8")))
     painter = QPainter(pixmap)
     renderer.render(painter)
     painter.end()
@@ -60,9 +63,9 @@ class MainWindow(QMainWindow):
         h.setContentsMargins(16, 12, 16, 12)
         h.setSpacing(10)
 
-        icon_lbl = QLabel()
-        icon_lbl.setObjectName("appIcon")
-        icon_lbl.setPixmap(app_icon(30).pixmap(30, 30))
+        self.icon_lbl = QLabel()
+        self.icon_lbl.setObjectName("appIcon")
+        self.icon_lbl.setPixmap(app_icon(30).pixmap(30, 30))
         title = QLabel("metascrub")
         title.setObjectName("appTitle")
         subtitle = QLabel("byte-safe audio metadata hygiene")
@@ -86,7 +89,7 @@ class MainWindow(QMainWindow):
         places_btn.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
         places_btn.setMenu(self.places_menu)
 
-        h.addWidget(icon_lbl)
+        h.addWidget(self.icon_lbl)
         h.addWidget(title)
         h.addWidget(subtitle)
         h.addSpacing(24)
@@ -131,6 +134,16 @@ class MainWindow(QMainWindow):
         self.nav_buttons[0].setChecked(True)
 
         side.addStretch(1)
+        theme_lbl = QLabel("Theme")
+        theme_lbl.setObjectName("version")
+        side.addWidget(theme_lbl)
+        self.theme_combo = QComboBox()
+        for key in theme_names():
+            self.theme_combo.addItem(theme_label(key), key)
+        self.theme_combo.setCurrentIndex(
+            self.theme_combo.findData(current_theme()))
+        self.theme_combo.currentIndexChanged.connect(self._on_theme_changed)
+        side.addWidget(self.theme_combo)
         ver = QLabel(f"v{__version__}")
         ver.setObjectName("version")
         side.addWidget(ver)
@@ -150,6 +163,21 @@ class MainWindow(QMainWindow):
 
     def root_path(self) -> str:
         return self.path_edit.text()
+
+    def _on_theme_changed(self, index: int):
+        key = self.theme_combo.itemData(index)
+        if not key or key == current_theme():
+            return
+        self._settings.setValue("theme", key)
+        app = QApplication.instance()
+        apply_theme(app, key)
+        self._refresh_icons()
+
+    def _refresh_icons(self):
+        icon = app_icon()
+        self.setWindowIcon(icon)
+        self.icon_lbl.setPixmap(app_icon(30).pixmap(30, 30))
+        QApplication.instance().setWindowIcon(icon)
 
     def _fill_places(self):
         """Rebuild the Places menu live so freshly mounted drives appear."""
