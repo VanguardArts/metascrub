@@ -128,31 +128,36 @@ jobs:
         shell: pwsh
         run: Compress-Archive dist/metascrub-cli.exe metascrub-cli-windows.zip
 
-      # ---------------- upload -------------------------------------------
-      - uses: actions/upload-artifact@v4
+      # Stage everything into one flat dir: upload-artifact preserves the
+      # directory structure relative to the least common ancestor of the
+      # paths, so mixed dist/ + root paths would nest files under dist/ and
+      # the release globs (flat) would miss them.
+      - name: Stage release files (linux)
         if: matrix.platform == 'linux'
-        with:
-          name: metascrub-linux
-          path: |
-            dist/metascrub_*_amd64.deb
-            dist/metascrub-gui-linux.AppImage
-            metascrub-cli-linux.tar.gz
+        run: |
+          mkdir -p artifacts
+          mv dist/metascrub_*_amd64.deb dist/metascrub-gui-linux.AppImage artifacts/
+          mv metascrub-cli-linux.tar.gz artifacts/
 
-      - uses: actions/upload-artifact@v4
+      - name: Stage release files (macos)
         if: matrix.platform == 'macos'
-        with:
-          name: metascrub-macos
-          path: |
-            dist/metascrub-gui-macos.dmg
-            metascrub-cli-macos.tar.gz
+        run: |
+          mkdir -p artifacts
+          mv dist/metascrub-gui-macos.dmg artifacts/
+          mv metascrub-cli-macos.tar.gz artifacts/
+
+      - name: Stage release files (windows)
+        if: matrix.platform == 'windows'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force artifacts | Out-Null
+          Move-Item dist/metascrub-setup-windows.exe artifacts/
+          Move-Item metascrub-cli-windows.zip artifacts/
 
       - uses: actions/upload-artifact@v4
-        if: matrix.platform == 'windows'
         with:
-          name: metascrub-windows
-          path: |
-            dist/metascrub-setup-windows.exe
-            metascrub-cli-windows.zip
+          name: metascrub-${{ matrix.platform }}
+          path: artifacts/*
 
   release:
     if: startsWith(github.ref, 'refs/tags/')
