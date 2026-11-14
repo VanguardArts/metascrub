@@ -105,3 +105,16 @@ def test_inspect_marks_c2pa_as_strip(wav_dirty):
     assert by_key["INFO:ISFT"] == "strip"
     assert by_key["chunk:fmt "] == "keep"
     assert by_key["chunk:data"] == "keep"
+def test_evict_unset_credits_wav(tmp_path):
+    from conftest import make_wav
+    from metascrub.scanner import clean, scan
+    from metascrub.policy import Policy
+
+    make_wav(tmp_path / "a.wav",
+             info={"IART": "aiuser42", "ICMT": "made with suno"})
+    pol = Policy()
+    pol.remove_unset_credits = True
+    clean(str(tmp_path), pol, dry_run=False)
+    keys = {e.key for e in scan(str(tmp_path), pol)[0].entries}
+    assert "INFO:IART" not in keys  # evicted although no replacement was set
+    assert "INFO:ICMT" not in keys  # strip list still applies

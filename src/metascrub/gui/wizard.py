@@ -48,7 +48,11 @@ PAGES = [
      "Always run a <b>Dry run</b> first: nothing is written and you review "
      "the full diff. Then <b>Apply changes</b>.<br><br>"
      "<b>Save policy&hellip;</b> stores the whole form as YAML/JSON so you "
-     "can reload it later or reuse it with the CLI."),
+     "can reload it later or reuse it with the CLI.<br><br>"
+     "Two safety extras: <b>Extra signatures</b> makes Verify hunt your own "
+     "strings (old usernames, project names), and <b>Remove credit tags with "
+     "no replacement</b> deletes stale credits even when a field is left "
+     "empty."),
     ("4 · Verify",
      "<b>Verify</b> proves nothing revealing remains - a green badge means "
      "the folder is clean.<br><br>"

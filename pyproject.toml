@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "metascrub"
-version = "0.5.2"
+version = "0.6.0"
 description = "Byte-safe audio metadata hygiene: inspect, strip provenance (comments, lyrics, C2PA, origin URLs), re-tag credits, clean titles."
 readme = "README.md"
 license = { text = "MIT" }

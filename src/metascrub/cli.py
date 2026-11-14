@@ -65,6 +65,9 @@ def _build_parser() -> argparse.ArgumentParser:
                     help='Label prefix stripped from titles, e.g. "My Label - ".')
     cp.add_argument("--no-titles", action="store_true",
                     help="Leave title tags untouched.")
+    cp.add_argument("--remove-unset-credits", action="store_true",
+                    help="Delete credit frames (artist, album, composer, label, "
+                         "copyright, year) even when no replacement is given.")
     cp.add_argument("--keep-cover-art", action="store_true",
                     help="Do not strip embedded cover art.")
 
@@ -102,6 +105,8 @@ def _policy_from_args(args) -> Policy:
         policy.titles.enabled = False
     if getattr(args, "keep_cover_art", False):
         policy.remove_cover_art = False
+    if getattr(args, "remove_unset_credits", False):
+        policy.remove_unset_credits = True
     return policy
 
 

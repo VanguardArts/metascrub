@@ -160,9 +160,6 @@ class MainWindow(QMainWindow):
 
         self.statusBar().showMessage("Ready")
 
-        if not self._settings.value("tutorial_seen", False, type=bool):
-            QTimer.singleShot(400, self._maybe_show_tutorial)
-
         for page in self.pages:
             if isinstance(page, ScanPage):
                 page.scan_btn.clicked.connect(
@@ -174,11 +171,11 @@ class MainWindow(QMainWindow):
     def root_path(self) -> str:
         return self.path_edit.text()
 
-    def _maybe_show_tutorial(self):
-        # the window may be gone (or never shown, e.g. in tests) by the
-        # time the timer fires - only auto-open for a real visible launch
-        if self.isVisible():
-            self.show_tutorial()
+    def auto_tutorial_if_first_launch(self):
+        """Called by app.py once the window is shown. Kept out of __init__
+        so constructing a MainWindow never schedules timers."""
+        if not self._settings.value("tutorial_seen", False, type=bool):
+            QTimer.singleShot(400, self.show_tutorial)
 
     def show_tutorial(self):
         dlg = TutorialDialog(self)
@@ -216,3 +213,12 @@ class MainWindow(QMainWindow):
         folder = QFileDialog.getExistingDirectory(self, "Choose audio folder", start)
         if folder:
             self.path_edit.setText(folder)
+
+    def closeEvent(self, event):
+        # Never destroy a page while its worker thread is still running:
+        # the QThread would be destroyed mid-run and crash the process.
+        for page in self.pages:
+            worker = getattr(page, "_worker", None)
+            if worker is not None and not worker.isFinished():
+                worker.wait()
+        super().closeEvent(event)

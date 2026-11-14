@@ -50,6 +50,10 @@ class Policy:
     genre_mode: str = "brackets"          # brackets | fixed | none
     genre_fixed: Optional[str] = None
     remove_cover_art: bool = True
+    # Evict credit frames (artist, album, composer, label, copyright, year)
+    # even when the policy has no replacement value for them, so stale or
+    # revealing credits can never survive a clean.
+    remove_unset_credits: bool = False
     strip_id3_frames: List[str] = field(default_factory=lambda: list(DEFAULT_STRIP_ID3_FRAMES))
     strip_riff_chunks: List[str] = field(default_factory=lambda: list(DEFAULT_STRIP_RIFF_CHUNKS))
     strip_riff_info: List[str] = field(default_factory=lambda: list(DEFAULT_STRIP_RIFF_INFO))
@@ -63,6 +67,10 @@ class Policy:
     def signatures(self) -> List[str]:
         return [s.lower() for s in DEFAULT_SIGNATURES + self.extra_signatures]
 
+    def matches_signature(self, text: str) -> bool:
+        t = text.lower()
+        return any(sig in t for sig in self.signatures())
+
     def to_dict(self) -> Dict[str, Any]:
         """Serialize to a plain dict (JSON/YAML-safe), for policy files."""
         return {
@@ -71,6 +79,7 @@ class Policy:
             "genre_mode": self.genre_mode,
             "genre_fixed": self.genre_fixed,
             "remove_cover_art": self.remove_cover_art,
+            "remove_unset_credits": self.remove_unset_credits,
             "strip_id3_frames": list(self.strip_id3_frames),
             "strip_riff_chunks": list(self.strip_riff_chunks),
             "strip_riff_info": list(self.strip_riff_info),

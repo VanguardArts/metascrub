@@ -87,3 +87,14 @@ def test_policy_file_plus_cli_override(tmp_path):
     tags = ID3(str(next(root.rglob("*.mp3"))))
     assert tags["TPE1"].text[0] == "Example Artist"          # CLI overrode policy file
     assert str(tags["TDRC"].text[0]) == "2026"    # from policy file
+def test_single_file_root(tmp_path):
+    from conftest import make_mp3
+    from metascrub.scanner import scan
+    from metascrub.policy import Policy
+
+    f = make_mp3(tmp_path / "one.mp3")
+    by_dir = scan(str(tmp_path), Policy())
+    by_file = scan(str(f), Policy())
+    assert len(by_file) == 1
+    assert by_file[0].path == "one.mp3"
+    assert len(by_file[0].entries) == len(by_dir[0].entries)

@@ -23,6 +23,23 @@ def qapp():
     app.processEvents()
 
 
+@pytest.fixture(autouse=True)
+def _widget_cleanup(qapp):
+    """Destroy leaked top-level widgets after each test.
+
+    Signal connections on child widgets capture their page, forming
+    reference cycles that CPython's GC cannot see through C++. Leaked
+    widgets would otherwise survive into interpreter shutdown, where
+    PySide6's global cleanup destroys them in a bad state (SIGSEGV in
+    QWidget::destroy via Shiboken::BindingManager::visitAllPyObjects).
+    """
+    yield
+    for w in QApplication.topLevelWidgets():
+        w.deleteLater()
+    qapp.sendPostedEvents(None, 0)
+    qapp.processEvents()
+
+
 def test_main_window_builds_and_navigates(qapp):
     from metascrub.gui.main_window import MainWindow
     w = MainWindow()
@@ -193,7 +210,8 @@ def test_tutorial_first_launch_and_reopen(qapp, monkeypatch):
                         lambda self: opened.append(1) or 0)
 
     w = MainWindow()
-    w.show()  # auto-open only happens for a visible window
+    w.show()
+    w.auto_tutorial_if_first_launch()  # what app.py does after window.show()
     QTest.qWait(600)  # let the first-launch timer fire
     assert opened, "tutorial should auto-open on first launch"
     assert settings.value("tutorial_seen", False, type=bool) is True
@@ -202,6 +220,7 @@ def test_tutorial_first_launch_and_reopen(qapp, monkeypatch):
     opened.clear()
     w2 = MainWindow()
     w2.show()
+    w2.auto_tutorial_if_first_launch()
     QTest.qWait(600)
     assert not opened, "tutorial must not auto-open on second launch"
     w2.tutorial_btn.click()  # ...but is summonable anytime
@@ -255,6 +274,42 @@ def test_auto_clean_end_to_end(qapp, tmp_path, monkeypatch):
     assert not any(e.action == "strip"
                    for r in scan.results for e in r.entries),         "re-scan should show nothing left to strip"
     w.close()
+def test_chained_worker_starts_retire_previous_safely(qapp, tmp_path):
+    """Regression: chained _start() from inside a done handler (what
+    auto-clean does) must retire the previous worker safely — a QThread
+    dropped for GC while its run() epilogue is still unwinding can crash
+    the process."""
+    from PySide6.QtTest import QTest
+
+    from conftest import make_wav
+    from metascrub import scanner
+    from metascrub.gui.pages import ScanPage
+    from metascrub.gui.workers import Worker
+
+    make_wav(tmp_path / "Example Records - [DNB] - Neon Skyline (2026).wav",
+             info={"ICMT": "made with suno; id=x"})
+    page = ScanPage(lambda: str(tmp_path))
+    CHAIN = 15
+    finished = {"n": 0}
+
+    def on_results(_results):
+        finished["n"] += 1
+        if finished["n"] < CHAIN:
+            # start the next worker straight from the done handler: the
+            # previous worker's thread is still unwinding at this point
+            w = Worker(scanner.scan, str(tmp_path), page._policy())
+            w.done.connect(on_results)
+            page._start(w, [page.scan_btn], page.progress)
+
+    page._on_results = on_results  # run_scan() connects this attribute
+    page.run_scan()
+    while finished["n"] < CHAIN:
+        QTest.qWait(50)
+    page._worker.wait(10000)
+    QTest.qWait(50)
+    assert finished["n"] == CHAIN
+
+
 def test_progress_caption_lives_on_label(qapp):
     from metascrub.gui.pages import ScanPage
     page = ScanPage(lambda: "/tmp")
@@ -282,3 +337,16 @@ def test_long_paths_do_not_expand_window(qapp):
     qapp.processEvents()
     assert w.width() <= 1180, "window must not grow to fit long captions"
     w.close()
+def test_clean_page_evict_and_signatures(qapp):
+    from metascrub.gui.pages import CleanPage
+    page = CleanPage(lambda: "/tmp")
+    assert page.evict_cb.isChecked() is False  # non-destructive default
+    page.evict_cb.setChecked(True)
+    page.signatures.setText("oldusername, secretproject")
+    p = page.build_policy()
+    assert p.remove_unset_credits is True
+    assert p.extra_signatures == ["oldusername", "secretproject"]
+    page2 = CleanPage(lambda: "/tmp")
+    page2.load_policy(p)
+    assert page2.evict_cb.isChecked() is True
+    assert page2.signatures.text() == "oldusername, secretproject"

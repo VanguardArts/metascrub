@@ -79,3 +79,31 @@ def test_tagless_mp3_gets_a_fresh_tag(tmp_path):
     tags = ID3(str(f))
     assert tags["TPE1"].text[0] == "Example Artist"
     assert "TALB" not in tags  # not under RELEASES
+def test_evict_unset_credits(tmp_path):
+    from conftest import make_mp3
+    from metascrub.scanner import clean
+    from metascrub.policy import Policy
+
+    f = make_mp3(tmp_path / "a.mp3")
+    clean(str(tmp_path), Policy(), dry_run=False)
+    assert "TPE1" in ID3(str(f))  # default: stale credits are kept
+
+    f2 = make_mp3(tmp_path / "b.mp3")
+    pol = Policy()
+    pol.remove_unset_credits = True
+    clean(str(f2), pol, dry_run=False)
+    tags = ID3(str(f2))
+    assert "TPE1" not in tags and "TPE2" not in tags
+    assert "TIT2" in tags  # title normalization unaffected
+
+
+def test_signature_flag_on_scan(mp3_dirty):
+    from metascrub.scanner import scan
+    from metascrub.policy import Policy
+
+    pol = Policy()
+    pol.extra_signatures = ["aiuser42"]
+    res = scan(str(mp3_dirty.parent), pol)
+    actions = {e.key: e.action for e in res[0].entries}
+    assert actions["TPE1"] == "flag"       # matches a signature
+    assert actions["COMM::eng"] == "strip"  # strip list wins over flagging

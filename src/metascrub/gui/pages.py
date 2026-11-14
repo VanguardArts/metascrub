@@ -144,6 +144,13 @@ class _BusyPage(QWidget):
 
     def _start(self, worker: Worker, run_buttons: List[QPushButton],
                progress: QProgressBar):
+        old = self._worker
+        if old is not None and old is not worker and not old.isFinished():
+            # done/failed are emitted from inside run(), i.e. before the
+            # thread has fully exited. Dropping the old worker here would
+            # let Python GC destroy a QThread whose run() epilogue is
+            # still unwinding — a race that can crash the process.
+            old.wait()
         self._worker = worker
         for b in run_buttons:
             b.setEnabled(False)
@@ -255,9 +262,13 @@ class ScanPage(_BusyPage):
         self.results = results
         self.populate(results)
         n = sum(len(r.entries) for r in results)
-        self.summary.setText(
-            f"{len(results)} file(s) · {n} embedded tag(s)/chunk(s) found — "
-            f"red entries are what a clean would strip.")
+        flagged = sum(1 for r in results for e in r.entries if e.action == "flag")
+        text = (f"{len(results)} file(s) · {n} embedded tag(s)/chunk(s) found — "
+                f"red entries are what a clean would strip.")
+        if flagged:
+            text += (f" ⚠ {flagged} yellow entr(y/ies) match a signature — "
+                     f"kept by clean; verify will fail on them.")
+        self.summary.setText(text)
         self._refresh_auto_btn()
 
     # -- auto-clean ------------------------------------------------------
@@ -270,6 +281,7 @@ class ScanPage(_BusyPage):
         strips = sum(1 for r in files for e in r.entries if e.action == "strip")
         sets = sum(1 for r in files for e in r.entries if e.action == "set")
         skipped = sum(1 for r in self.results if r.skipped)
+        flagged = sum(1 for r in files for e in r.entries if e.action == "flag")
 
         box = QMessageBox(self)
         box.setWindowTitle("metascrub — Auto-clean")
@@ -281,6 +293,9 @@ class ScanPage(_BusyPage):
             + " in place, using the current Clean page settings, then "
             "re-scan so you can see the result."
             + (f"\n{skipped} excluded file(s) stay untouched." if skipped else "")
+            + (f"\n⚠ {flagged} tag(s) match a signature but would be kept "
+               "(no replacement filled in) — verify will still flag them."
+               if flagged else "")
             + "\n\nAudio is never re-encoded and WAV writes are "
             "hash-verified, but existing tags are permanently replaced. "
             "This cannot be undone.")
@@ -308,6 +323,11 @@ class ScanPage(_BusyPage):
             f"Auto-clean finished: {len(treated)} file(s) treated"
             + (f" · {len(errors)} error(s)" if errors else "")
             + " — re-scanning…")
+        if self._worker is not None and not self._worker.isFinished():
+            # the clean worker emitted done() from inside run(); its
+            # thread may still be in the epilogue, where isRunning() is
+            # still True and run_scan() would silently skip the re-scan.
+            self._worker.wait()
         self.run_scan()
 
     def populate(self, results):
@@ -372,13 +392,24 @@ class CleanPage(_BusyPage):
         self.titles_cb.setChecked(True)
         self.cover_cb = QCheckBox("Strip embedded cover art")
         self.cover_cb.setChecked(True)
+        self.evict_cb = QCheckBox("Remove credit tags with no replacement")
+        self.evict_cb.setChecked(False)
+        self.evict_cb.setToolTip(
+            "Artist, album artist, composer, label, copyright, year and album "
+            "tags are deleted even when the matching field is left empty, so "
+            "stale or revealing credits can never survive a clean.")
+        self.signatures = QLineEdit()
+        self.signatures.setPlaceholderText(
+            "comma-separated, e.g. an old username — Verify hunts these")
 
         rules.addRow("Genre", self.genre_mode)
         rules.addRow("", self.genre_fixed)
         rules.addRow("Label prefix", self.label_prefix)
         rules.addRow("Exclude paths", self.excludes)
+        rules.addRow("Extra signatures", self.signatures)
         rules.addRow("", self.titles_cb)
         rules.addRow("", self.cover_cb)
+        rules.addRow("", self.evict_cb)
 
         top = QHBoxLayout()
         top.addWidget(form_box, 3)
@@ -433,7 +464,10 @@ class CleanPage(_BusyPage):
         p.titles.enabled = self.titles_cb.isChecked()
         p.titles.strip_label_prefix = self.label_prefix.text() or None
         p.remove_cover_art = self.cover_cb.isChecked()
+        p.remove_unset_credits = self.evict_cb.isChecked()
         p.exclude = [s.strip() for s in self.excludes.text().split(",") if s.strip()]
+        p.extra_signatures = [s.strip() for s in self.signatures.text().split(",")
+                              if s.strip()]
         return p
 
     def load_policy(self, policy: Policy) -> None:
@@ -451,7 +485,9 @@ class CleanPage(_BusyPage):
         self.titles_cb.setChecked(policy.titles.enabled)
         self.label_prefix.setText(policy.titles.strip_label_prefix or "")
         self.cover_cb.setChecked(policy.remove_cover_art)
+        self.evict_cb.setChecked(policy.remove_unset_credits)
         self.excludes.setText(", ".join(policy.exclude))
+        self.signatures.setText(", ".join(policy.extra_signatures))
 
     def load_policy_dialog(self):
         path, _ = QFileDialog.getOpenFileName(

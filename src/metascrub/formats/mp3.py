@@ -61,9 +61,15 @@ class MP3Adapter(FormatAdapter):
             result.error = str(exc)
             return result
         for key in sorted(tags.keys()):
-            action = "strip" if self._is_strip(key, policy) else "keep"
+            value = _preview_frame(tags[key])
+            if self._is_strip(key, policy):
+                action = "strip"
+            elif policy.matches_signature(value):
+                action = "flag"  # kept by clean, but verify hunts it
+            else:
+                action = "keep"
             result.entries.append(
-                TagEntry(key=key, value=_preview_frame(tags[key]), action=action, kind="tag")
+                TagEntry(key=key, value=value, action=action, kind="tag")
             )
         if not tags:
             result.entries.append(TagEntry("(no ID3 tag)", "", "keep", "tag"))
@@ -92,8 +98,12 @@ class MP3Adapter(FormatAdapter):
         ]
         if policy.titles.enabled:
             to_set.append(("TIT2", TIT2, derived.title))
+        replace_ids = {fid for fid, _, v in to_set if v is not None}
+        if policy.remove_unset_credits:
+            # evict stale credit frames even when there is no replacement
+            replace_ids |= {"TPE1", "TPE2", "TCOM", "TDRC",
+                            "TPUB", "TCOP", "TALB"}
         to_set = [(fid, cls, v) for fid, cls, v in to_set if v is not None]
-        replace_ids = {fid for fid, _, _ in to_set}
 
         for key in list(tags.keys()):
             if self._is_strip(key, policy) or key in replace_ids:

@@ -18,6 +18,9 @@ titles:
   strip_year_suffix: true                  # strip "(2026)"
 genre_mode: brackets                       # per-track genre from the [Genre] in the filename
 remove_cover_art: true
+remove_unset_credits: true                 # delete stale credit tags (artist, album,
+                                           # composer, label, copyright, year) even when
+                                           # no replacement is set above
 exclude:                                   # regexes matched against relative paths
   - 'OtherArtist'                               # another artist's archival folder
   - 'OldArchive'

@@ -84,7 +84,12 @@ class WAVAdapter(FormatAdapter):
         for cid, body in chunks:
             if cid == b"LIST" and body[:4] == b"INFO":
                 for code, text in _parse_info(body):
-                    action = "strip" if code in policy.strip_riff_info else "keep"
+                    if code in policy.strip_riff_info:
+                        action = "strip"
+                    elif policy.matches_signature(text):
+                        action = "flag"  # kept by clean, but verify hunts it
+                    else:
+                        action = "keep"
                     result.entries.append(
                         TagEntry(f"INFO:{code}", preview(text), action, "tag")
                     )
@@ -134,6 +139,9 @@ class WAVAdapter(FormatAdapter):
         if c.composer:
             credit_fields.append(("IENG", c.composer))
         credit_codes = {code for code, _ in credit_fields}
+        if policy.remove_unset_credits:
+            # evict stale credit fields even without a replacement value
+            credit_codes |= {"IART", "IPRD", "ICRD", "ICOP", "IENG"}
 
         new_chunks: List[Tuple[bytes, bytes]] = []
         list_seen = False

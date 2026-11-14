@@ -66,3 +66,17 @@ def test_signatures_include_extras():
     p = Policy(extra_signatures=["aiuser42"])
     assert "aiuser42" in p.signatures()
     assert "suno" in p.signatures()
+def test_remove_unset_credits_serialization():
+    from metascrub.policy import Policy
+
+    p = Policy()
+    assert p.remove_unset_credits is False
+    p.remove_unset_credits = True
+    p.extra_signatures = ["oldusername"]
+    d = p.to_dict()
+    assert d["remove_unset_credits"] is True
+    p2 = Policy.from_dict(d)
+    assert p2.remove_unset_credits is True
+    assert p2.extra_signatures == ["oldusername"]
+    assert p2.matches_signature("made by OldUsername back then")
+    assert not p2.matches_signature("perfectly neutral text")

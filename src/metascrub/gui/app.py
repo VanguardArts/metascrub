@@ -30,7 +30,17 @@ def main(argv: Optional[List[str]] = None) -> int:
 
     window = MainWindow()
     window.show()
-    return app.exec()
+    window.auto_tutorial_if_first_launch()
+    exit_code = app.exec()
+    # Destroy the window while the QApplication is still fully alive.
+    # Signal connections on child widgets capture the window, forming
+    # reference cycles that CPython's GC cannot see through C++; without
+    # this the window can leak into interpreter shutdown, where PySide6's
+    # global cleanup would tear it down in a bad state.
+    window.deleteLater()
+    app.sendPostedEvents(None, 0)
+    app.processEvents()
+    return exit_code
 
 
 if __name__ == "__main__":  # pragma: no cover

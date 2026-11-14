@@ -95,7 +95,8 @@ metascrub-gui          # or: python -m metascrub.gui
 ![Scan view](docs/screenshot-scan.png)
 
 * **Scan** — every embedded tag/chunk in a color-coded table (red = would be
-  stripped), with a live filter.
+  stripped, yellow = matches an extra signature), with a live filter, and a
+  one-click **Auto-clean** once results are in.
 * **Clean** — credits/rules form, policy load/save, dry-run diff, then Apply
   behind a confirmation dialog. Work runs on a background thread with a
   progress bar.
@@ -162,11 +163,19 @@ titles:
   strip_label_prefix: "Example Records - "
 genre_mode: brackets          # per-track genre from the [Genre] in the filename
 remove_cover_art: true
+remove_unset_credits: true   # evict credit tags even when no replacement is set,
+                             # so stale/revealing credits can never survive a clean
 exclude: ['Samples/', 'OtherArtist']
 extra_signatures: ['mygeneratorusername']
 ```
 
 CLI flags override policy values. See [examples/policy.example.yaml](examples/policy.example.yaml).
+
+Values matching an `extra_signatures` entry are shown **yellow** ("flag") in
+scan results: the clean keeps them (only strips provenance), but Verify hunts
+them, so you can hunt down leftovers like an old username yourself. Combined
+with `remove_unset_credits`, signature hits in credit fields disappear
+entirely instead of being flagged.
 
 ## WAV specifics
 

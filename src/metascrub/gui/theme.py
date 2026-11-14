@@ -17,6 +17,7 @@ ACTION_COLORS = {
     "strip": DANGER,
     "set": SUCCESS,
     "keep": MUTED,
+    "flag": WARN,
     "skip": WARN,
     "error": DANGER,
 }

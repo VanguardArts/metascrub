@@ -13,7 +13,14 @@ ProgressCb = Optional[Callable[[int, int, str], None]]
 
 
 def iter_files(root: str):
-    """Yield (abspath, relpath) for every regular file under root, sorted."""
+    """Yield (abspath, relpath) for every regular file under root, sorted.
+
+    A single-file root yields just that file (the CLI advertises "file or
+    folder tree"); os.walk alone would silently yield nothing for files.
+    """
+    if os.path.isfile(root):
+        yield root, os.path.basename(root)
+        return
     for dirpath, _dirnames, filenames in os.walk(root):
         for fn in sorted(filenames):
             full = os.path.join(dirpath, fn)
