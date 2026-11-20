@@ -1,0 +1,32 @@
+# Maintainer: Vanguard Arts SRL <https://vanguardarts.vip/>
+pkgname=metascrub
+pkgver=0.6.0
+pkgrel=1
+pkgdesc="Byte-safe audio metadata hygiene (CLI + GUI)"
+arch=('any')
+url="https://github.com/VanguardArts/metascrub"
+license=('MIT')
+depends=('python' 'python-mutagen' 'python-pyside6')
+optdepends=('python-pyyaml: YAML policy files')
+source=("$pkgname-$pkgver.tar.gz::https://github.com/VanguardArts/metascrub/archive/refs/tags/v$pkgver.tar.gz")
+sha256sums=('SKIP')
+
+package() {
+    cd "$srcdir/$pkgname-$pkgver"
+    install -dm755 "$pkgdir/usr/lib/metascrub"
+    cp -r src/metascrub "$pkgdir/usr/lib/metascrub/metascrub"
+    cp packaging/cli_main.py packaging/gui_main.py "$pkgdir/usr/lib/metascrub/"
+
+    printf '#!/bin/sh\nexec python3 /usr/lib/metascrub/cli_main.py "$@"\n' > "$pkgdir/usr/bin/metascrub"
+    printf '#!/bin/sh\nexec python3 /usr/lib/metascrub/gui_main.py "$@"\n' > "$pkgdir/usr/bin/metascrub-gui"
+    chmod 755 "$pkgdir/usr/bin/metascrub" "$pkgdir/usr/bin/metascrub-gui"
+
+    install -Dm644 packaging/metascrub.desktop \
+        "$pkgdir/usr/share/applications/metascrub.desktop"
+    install -Dm644 packaging/metascrub.svg \
+        "$pkgdir/usr/share/icons/hicolor/scalable/apps/metascrub.svg"
+    for sz in 16 24 32 48 64 96 128 256 512; do
+        install -Dm644 "packaging/icons/hicolor/${sz}x${sz}/apps/metascrub.png" \
+            "$pkgdir/usr/share/icons/hicolor/${sz}x${sz}/apps/metascrub.png"
+    done
+}

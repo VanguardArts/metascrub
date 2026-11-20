@@ -8,7 +8,7 @@ version = "0.6.0"
 description = "Byte-safe audio metadata hygiene: inspect, strip provenance (comments, lyrics, C2PA, origin URLs), re-tag credits, clean titles."
 readme = "README.md"
 license = { text = "MIT" }
-authors = [{ name = "Example Records" }]
+authors = [{ name = "Vanguard Arts SRL" }]
 requires-python = ">=3.9"
 keywords = ["metadata", "audio", "id3", "riff", "c2pa", "tagging", "privacy"]
 dependencies = ["mutagen>=1.45"]

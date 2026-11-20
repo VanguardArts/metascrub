@@ -164,10 +164,19 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+
+      - name: Build .rpm (Fedora/RHEL/openSUSE)
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq rpm
+          bash scripts/build-rpm.sh
+
       - uses: actions/download-artifact@v4
         with:
           pattern: metascrub-*
           merge-multiple: true
+
       - uses: softprops/action-gh-release@v2
         with:
           files: |
@@ -178,4 +187,5 @@ jobs:
             metascrub-gui-linux.AppImage
             metascrub_*_amd64.deb
             metascrub-cli-linux.tar.gz
+            build/rpm/RPMS/noarch/*.rpm
           generate_release_notes: true

@@ -41,6 +41,20 @@ Grab the package for your platform from
 Portable CLI-only archives (`metascrub-cli-{linux,macos}.tar.gz`,
 `metascrub-cli-windows.zip`) are attached to the release as well.
 
+### Linux distro packages
+
+Native (noarch) packages are also available for every major distro family:
+
+| Distro family | Format | Install |
+|---|---|---|
+| Fedora / RHEL / openSUSE | `.rpm` | `sudo dnf install metascrub-*.rpm` |
+| Arch / Manjaro | `PKGBUILD` | `pacman -U metascrub-*.pkg.tar.zst` |
+| NixOS / Nix | flake | `nix profile install github:VanguardArts/metascrub` |
+| Any distro | Flatpak | `flatpak install com.vanguardarts.Metascrub` |
+| Any Linux (no root) | portable | `./install.sh` (installs to `~/.local`) |
+
+Build them from source with `make rpm`, `make flatpak`, or `make icons` (see `Makefile`).
+
 The packages are unsigned, so Windows SmartScreen and macOS Gatekeeper will
 warn on first run. On Windows choose **More info → Run anyway**; on macOS
 right-click the app → **Open** (or run

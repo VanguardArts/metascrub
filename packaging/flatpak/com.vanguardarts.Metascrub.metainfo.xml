@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>com.vanguardarts.Metascrub</id>
+  <name>metascrub</name>
+  <summary>Byte-safe audio metadata hygiene</summary>
+  <metadata_license>MIT</metadata_license>
+  <project_license>MIT</project_license>
+  <url type="homepage">https://github.com/VanguardArts/metascrub</url>
+  <description>
+    <p>
+      Inspect, strip and normalize audio metadata (comments, lyrics, C2PA
+      provenance, origin URLs, cover art) without re-encoding audio.
+    </p>
+  </description>
+  <launchable type="desktop-id">com.vanguardarts.Metascrub.desktop</launchable>
+  <releases>
+    <release version="0.6.0" date="2026-11-21"/>
+  </releases>
+</component>

@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=metascrub
+Comment=Byte-safe audio metadata hygiene
+Exec=metascrub-gui
+Icon=com.vanguardarts.Metascrub
+Terminal=false
+Categories=AudioVideo;Audio;Utility;
