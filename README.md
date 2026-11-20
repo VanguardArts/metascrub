@@ -218,3 +218,8 @@ the copyright status of a work. You are responsible for how you use it.
 ## License
 
 MIT © 2026 metascrub contributors.
+
+## Vanguard Arts
+
+- **Website:** https://vanguardarts.vip/
+- **Support / contact:** [https://vanguardarts.vip/contact](https://vanguardarts.vip/contact) (contact form)
