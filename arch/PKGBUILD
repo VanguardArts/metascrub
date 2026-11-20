@@ -1,6 +1,6 @@
 # Maintainer: Vanguard Arts SRL <https://vanguardarts.vip/>
 pkgname=metascrub
-pkgver=0.6.0
+pkgver=0.7.0
 pkgrel=1
 pkgdesc="Byte-safe audio metadata hygiene (CLI + GUI)"
 arch=('any')

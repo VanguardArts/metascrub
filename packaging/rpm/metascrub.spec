@@ -1,5 +1,5 @@
 Name:           metascrub
-Version:        0.6.0
+Version:        0.7.0
 Release:        1%{?dist}
 Summary:        Byte-safe audio metadata hygiene (CLI + GUI)
 License:        MIT
@@ -63,5 +63,6 @@ done
 %{_datadir}/icons/hicolor/512x512/apps/metascrub.png
 
 %changelog
+* Sat Nov 21 2026 Vanguard Arts SRL <https://vanguardarts.vip/> - 0.7.0-1
 * Sat Nov 21 2026 Vanguard Arts SRL <https://vanguardarts.vip/> - 0.6.0-1
 - Initial RPM packaging (noarch, pure Python).
